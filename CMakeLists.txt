@@ -7,18 +7,19 @@ SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 PROJECT(libzip C)
 
-OPTION(ENABLE_COMMONCRYPTO "Enable use of CommonCrypto" ON)
-OPTION(ENABLE_GNUTLS "Enable use of GnuTLS" ON)
-OPTION(ENABLE_MBEDTLS "Enable use of mbed TLS" ON)
-OPTION(ENABLE_OPENSSL "Enable use of OpenSSL" ON)
-OPTION(ENABLE_WINDOWS_CRYPTO "Enable use of Windows cryptography libraries" ON)
+OPTION(ENABLE_LIBZIP_DIST "Enable use of CommonCrypto" OFF)
+OPTION(ENABLE_COMMONCRYPTO "Enable use of CommonCrypto" OFF)
+OPTION(ENABLE_GNUTLS "Enable use of GnuTLS" OFF)
+OPTION(ENABLE_MBEDTLS "Enable use of mbed TLS" OFF)
+OPTION(ENABLE_OPENSSL "Enable use of OpenSSL" OFF)
+OPTION(ENABLE_WINDOWS_CRYPTO "Enable use of Windows cryptography libraries" OFF)
 
-OPTION(ENABLE_BZIP2 "Enable use of BZip2" ON)
+OPTION(ENABLE_BZIP2 "Enable use of BZip2" OFF)
 
-OPTION(BUILD_TOOLS "Build tools in the src directory (zipcmp, zipmerge, ziptool)" ON)
-OPTION(BUILD_REGRESS "Build regression tests" ON)
-OPTION(BUILD_EXAMPLES "Build examples" ON)
-OPTION(BUILD_DOC "Build documentation" ON)
+OPTION(BUILD_TOOLS "Build tools in the src directory (zipcmp, zipmerge, ziptool)" OFF)
+OPTION(BUILD_REGRESS "Build regression tests" OFF)
+OPTION(BUILD_EXAMPLES "Build examples" OFF)
+OPTION(BUILD_DOC "Build documentation" OFF)
 
 INCLUDE(CheckFunctionExists)
 INCLUDE(CheckIncludeFiles)
@@ -59,8 +60,6 @@ ELSE()
   SET(WINDOWS_CRYPTO_FOUND FALSE)
 ENDIF()
 
-OPTION(BUILD_SHARED_LIBS "Build shared libraries" ON)
-
 
 OPTION(SHARED_LIB_VERSIONNING "Add SO version in .so build" ON)
 
@@ -91,32 +90,35 @@ SET(LIBZIP_VERSION_MICRO ${PACKAGE_VERSION_MICRO})
 SET(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 
 SET(ARCHIVE_NAME ${PACKAGE_NAME}-${PACKAGE_VERSION})
-ADD_CUSTOM_TARGET(dist
-  COMMAND git config tar.tar.xz.command "xz -c"
-  COMMAND git archive --prefix=${ARCHIVE_NAME}/ -o ${ARCHIVE_NAME}.tar.gz HEAD
-  COMMAND git archive --prefix=${ARCHIVE_NAME}/ -o ${ARCHIVE_NAME}.tar.xz HEAD
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  )
-ADD_CUSTOM_TARGET(distcheck
-  COMMAND chmod -R u+w ${ARCHIVE_NAME} ${ARCHIVE_NAME}-build ${ARCHIVE_NAME}-dest 2>/dev/null || true
-  COMMAND rm -rf ${ARCHIVE_NAME} ${ARCHIVE_NAME}-build ${ARCHIVE_NAME}-dest
-  COMMAND cmake -E tar xf ${ARCHIVE_NAME}.tar.gz
-  COMMAND chmod -R u-w ${ARCHIVE_NAME}
-  COMMAND mkdir ${ARCHIVE_NAME}-build
-  COMMAND mkdir ${ARCHIVE_NAME}-dest
-  COMMAND cd ${ARCHIVE_NAME}-build && cmake -DCMAKE_INSTALL_PREFIX=../${ARCHIVE_NAME}-dest ../${ARCHIVE_NAME}
-  COMMAND cd ${ARCHIVE_NAME}-build && make -j4
-  COMMAND cd ${ARCHIVE_NAME}-build && make test
-  COMMAND cd ${ARCHIVE_NAME}-build && make install
-#  COMMAND cd ${ARCHIVE_NAME}-build && make uninstall
-#  COMMAND if [ `find ${ARCHIVE_NAME}-dest ! -type d | wc -l` -ne 0 ]; then echo leftover files in ${ARCHIVE_NAME}-dest; false; fi
-  COMMAND cd ${ARCHIVE_NAME}-build && make clean
-  COMMAND chmod -R u+w ${ARCHIVE_NAME} ${ARCHIVE_NAME}-build ${ARCHIVE_NAME}-dest
-  COMMAND rm -rf ${ARCHIVE_NAME} ${ARCHIVE_NAME}-build ${ARCHIVE_NAME}-dest
-  COMMAND echo "${ARCHIVE_NAME}.tar.gz is ready for distribution."
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  )
-ADD_DEPENDENCIES(distcheck dist)
+
+if(ENABLE_LIBZIP_DIST)
+	ADD_CUSTOM_TARGET(dist
+	  COMMAND git config tar.tar.xz.command "xz -c"
+	  COMMAND git archive --prefix=${ARCHIVE_NAME}/ -o ${ARCHIVE_NAME}.tar.gz HEAD
+	  COMMAND git archive --prefix=${ARCHIVE_NAME}/ -o ${ARCHIVE_NAME}.tar.xz HEAD
+	  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	  )
+	ADD_CUSTOM_TARGET(distcheck
+	  COMMAND chmod -R u+w ${ARCHIVE_NAME} ${ARCHIVE_NAME}-build ${ARCHIVE_NAME}-dest 2>/dev/null || true
+	  COMMAND rm -rf ${ARCHIVE_NAME} ${ARCHIVE_NAME}-build ${ARCHIVE_NAME}-dest
+	  COMMAND cmake -E tar xf ${ARCHIVE_NAME}.tar.gz
+	  COMMAND chmod -R u-w ${ARCHIVE_NAME}
+	  COMMAND mkdir ${ARCHIVE_NAME}-build
+	  COMMAND mkdir ${ARCHIVE_NAME}-dest
+	  COMMAND cd ${ARCHIVE_NAME}-build && cmake -DCMAKE_INSTALL_PREFIX=../${ARCHIVE_NAME}-dest ../${ARCHIVE_NAME}
+	  COMMAND cd ${ARCHIVE_NAME}-build && make -j4
+	  COMMAND cd ${ARCHIVE_NAME}-build && make test
+	  COMMAND cd ${ARCHIVE_NAME}-build && make install
+	#  COMMAND cd ${ARCHIVE_NAME}-build && make uninstall
+	#  COMMAND if [ `find ${ARCHIVE_NAME}-dest ! -type d | wc -l` -ne 0 ]; then echo leftover files in ${ARCHIVE_NAME}-dest; false; fi
+	  COMMAND cd ${ARCHIVE_NAME}-build && make clean
+	  COMMAND chmod -R u+w ${ARCHIVE_NAME} ${ARCHIVE_NAME}-build ${ARCHIVE_NAME}-dest
+	  COMMAND rm -rf ${ARCHIVE_NAME} ${ARCHIVE_NAME}-build ${ARCHIVE_NAME}-dest
+	  COMMAND echo "${ARCHIVE_NAME}.tar.gz is ready for distribution."
+	  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	  )
+	ADD_DEPENDENCIES(distcheck dist)
+endif()
 
 IF(BUILD_SHARED_LIBS)
   SET(HAVE_SHARED TRUE)
